@@ -29,6 +29,7 @@ class AuditReportGenerator:
             badge_color = "#e63946" if row["recommended_verdict"] == "DISQUALIFY" else "#f4a261" if row["recommended_verdict"] == "MANUAL_REVIEW" else "#2a9d8f"
             addr = row['wallet_address']
             short_addr = f"{addr[:6]}...{addr[-4:]}"
+            cex_sig = row['cex_signal'] if 'cex_signal' in row else 0
             table_rows += f"""
             <tr>
                 <td style="font-family: monospace; font-size: 13px;">
@@ -37,7 +38,7 @@ class AuditReportGenerator:
                 <td><strong style="color: {badge_color};">{row['sybil_risk_score']}/100</strong></td>
                 <td><span style="background: {badge_color}22; color: {badge_color}; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">{row['recommended_verdict']}</span></td>
                 <td>{row['tier']}</td>
-                <td style="color: #8d99ae;">Graph: {row['graph_signal']} | DNA: {row['jaccard_signal']}</td>
+                <td style="color: #8d99ae;">Graph: {row['graph_signal']} | DNA: {row['jaccard_signal']} | CEX: {cex_sig}</td>
             </tr>
             """
 
@@ -170,7 +171,7 @@ class AuditReportGenerator:
         </div>
 
         <h3 style="color: #f0f6fc; margin-bottom: 10px;">Top Flagged Sybil Coordinates (Sample Audit Trail)</h3>
-        <p style="color: #8b949e; font-size: 13px; margin-top: 0;">Transparent, auditable proofs generated using Hub-Pruned Louvain Partitioning and Behavioral Jaccard DNA.</p>
+        <p style="color: #8b949e; font-size: 13px; margin-top: 0;">Transparent, auditable proofs generated using Hub-Pruned Louvain Partitioning, Behavioral Jaccard DNA, and CEX Deposit Convergence.</p>
 
         <div class="table-container">
             <table>
@@ -200,5 +201,5 @@ class AuditReportGenerator:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        print(f"📄 [ReportGenerator] Successfully generated official launch audit report: {output_path}")
+        print(f"[ReportGenerator] Successfully generated official launch audit report: {output_path}")
         return output_path

@@ -1,7 +1,7 @@
 """
 Aegis3 End-to-End Launch Audit CLI
 The master execution pipeline that connects Graph Building, Louvain Partitioning,
-Jaccard Behavioral Alignment, Scorer, and the Report Generator.
+Jaccard Behavioral Alignment, CEX Deposit Tracing, Scorer, and the Report Generator.
 """
 
 import os
@@ -16,8 +16,10 @@ sys.path.append(os.path.join(ROOT_DIR, "report-generator"))
 from graph_builder import GraphBuilder
 from filters.louvain_cluster import LouvainClusterFilter
 from filters.jaccard_dna import JaccardDNAAnalyzer
+from filters.cex_tracer import CEXDepositTracer
 from scorer import SybilRiskScorer
 from generate_report import AuditReportGenerator
+
 
 def execute_launch_audit():
     print("=" * 65)
@@ -56,16 +58,17 @@ def execute_launch_audit():
     builder.add_transfers(synthetic_transfers)
     builder.prune_mega_hubs()
 
-    # 3. Community Detection & Jaccard Sequence Analysis
+    # 3. Multi-Signal Sybil Detection: Louvain, Jaccard DNA, and CEX Deposit Convergence
     print("\n[3/5] Executing Multi-Signal Sybil Filters...")
+    
+    # 3A: Louvain Community Partitioning
     louvain_filter = LouvainClusterFilter(min_cluster_size=5)
     undirected_graph = builder.get_undirected()
     partition = louvain_filter.partition(undirected_graph)
     cartels = louvain_filter.extract_suspicious_cartels(undirected_graph, partition)
 
-    # Behavioral Jaccard DNA simulation on smart contract interactions
+    # 3B: Behavioral Jaccard DNA on smart contract interactions
     dna_analyzer = JaccardDNAAnalyzer(similarity_threshold=0.85)
-    # Generate mock interaction footprints for demonstration
     mock_interactions = {}
     for w in candidate_wallets:
         # Sybils in the same cartel call the same sequence of contracts
@@ -74,10 +77,25 @@ def execute_launch_audit():
 
     jaccard_clones = dna_analyzer.find_scripted_clones(mock_interactions)
 
-    # 4. Multi-Signal Scoring Engine
+    # 3C: CEX Deposit Address Convergence Tracer
+    cex_tracer = CEXDepositTracer(min_convergence_wallets=3, max_deposit_degree=150)
+    downstream_transfers = []
+    # Simulate realistic cash-out transfers where cartel members consolidate to exchange deposit addresses
+    for w in candidate_wallets:
+        cluster_id = partition.get(w.lower().strip(), None)
+        if cluster_id is not None and cluster_id < 5:
+            # First 5 cartels deposit to shared exchange deposit addresses
+            downstream_transfers.append((w, f"0xBinance_Deposit_Account_{cluster_id}", 1.25))
+        else:
+            # Organic/unrelated wallets cash out to unique merchant or wallet destinations
+            downstream_transfers.append((w, f"0xUniqueDestination_{w[:8]}", 0.10))
+
+    cex_clusters = cex_tracer.find_converging_clusters(downstream_transfers)
+
+    # 4. Multi-Signal Scoring Engine (Graph + Jaccard DNA + CEX Convergence)
     print("\n[4/5] Computing Deterministic 0-100 Sybil Risk Scores...")
     scorer = SybilRiskScorer()
-    scored_df = scorer.score_wallets(candidate_wallets, cartels, jaccard_clones)
+    scored_df = scorer.score_wallets(candidate_wallets, cartels, jaccard_clones, cex_clusters)
 
     # Export Scored Allocation CSV
     csv_out = os.path.join(ROOT_DIR, "Docs", "scored_allocations.csv")
@@ -98,6 +116,7 @@ def execute_launch_audit():
     print(f"\n   Open your report in browser:")
     print(f"   {html_out}")
     print("=" * 65)
+
 
 if __name__ == "__main__":
     execute_launch_audit()
