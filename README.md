@@ -192,7 +192,7 @@ SPRINT 4 (WEEKS 7-8: DEC 8 - DEC 22, 2026): CLAIM-GATE & COMMERCIAL DEPLOYMENT
 ## Local Development Setup
 
 ```powershell
-git clone https://github.com/coder-hub-l/Aegis3.git
+git clone https://github.com/Aegis3-labs/Aegis3.git
 cd Aegis3
 python -m venv .venv
 
